@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tetris Modern</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Orbitron', monospace;
+      overflow: hidden;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    body {
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 25% 25%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(255, 119, 198, 0.3) 0%, transparent 50%);
+      animation: float 8s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    .game-container {
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      z-index: 10;
+      position: relative;
+    }
+
+    .game-board {
+      position: relative;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    #score {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.9), rgba(30, 30, 60, 0.9));
+      color: #00ff88;
+      padding: 20px 25px;
+      border-radius: 15px;
+      font-size: 24px;
+      font-weight: 700;
+      box-shadow: 
+        0 8px 32px rgba(0, 255, 136, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 255, 136, 0.3);
+      text-align: center;
+      min-width: 160px;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    }
+
+    #level, #lines {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.9), rgba(30, 30, 60, 0.9));
+      color: #ff6b6b;
+      padding: 15px 20px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: 
+        0 6px 20px rgba(255, 107, 107, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      text-align: center;
+      min-width: 160px;
+      text-shadow: 0 0 8px rgba(255, 107, 107, 0.8);
+    }
+
+    #next-piece {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.9), rgba(30, 30, 60, 0.9));
+      color: #4ecdc4;
+      padding: 15px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 
+        0 6px 20px rgba(78, 205, 196, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(78, 205, 196, 0.3);
+      text-align: center;
+      min-width: 160px;
+      text-shadow: 0 0 8px rgba(78, 205, 196, 0.8);
+    }
+
+    #next-canvas {
+      margin-top: 10px;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    canvas {
+      border-radius: 20px;
+      box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 0 0 2px rgba(255, 255, 255, 0.1),
+        inset 0 0 50px rgba(0, 255, 136, 0.1);
+      background: linear-gradient(145deg, #0a0a0a, #1a1a1a);
+      border: 2px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .controls {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.9), rgba(30, 30, 60, 0.9));
+      color: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      font-size: 14px;
+      box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+      min-width: 160px;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+    }
+
+    .game-over-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .game-over-content {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.95), rgba(30, 30, 60, 0.95));
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      border: 2px solid rgba(255, 107, 107, 0.5);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    }
+
+    .game-over-title {
+      color: #ff6b6b;
+      font-size: 48px;
+      font-weight: 900;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .final-score {
+      color: #00ff88;
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    }
+
+    .restart-btn {
+      background: linear-gradient(145deg, #00ff88, #00cc70);
+      color: #000;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 12px;
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(0, 255, 136, 0.4);
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px rgba(0, 255, 136, 0.6);
+    }
+
+    /* Particle effects */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #00ff88;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: particle-float 3s linear infinite;
+    }
+
+    @keyframes particle-float {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    /* Mobile Controls */
+    .mobile-controls {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      gap: 15px;
+      z-index: 100;
+    }
+
+    .mobile-btn {
+      background: linear-gradient(145deg, rgba(17, 17, 35, 0.9), rgba(30, 30, 60, 0.9));
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 6px 20px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .mobile-btn:active {
+      transform: scale(0.95);
+      box-shadow: 
+        0 3px 10px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .control-row {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+
+    .move-btn {
+      width: 60px;
+      height: 60px;
+    }
+
+    .action-btn {
+      width: 80px;
+      height: 50px;
+    }
+
+    .restart-mobile-btn {
+      width: 100px;
+      height: 45px;
+      background: linear-gradient(145deg, #ff6b6b, #ee5a52);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .game-container {
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+        padding: 10px;
+      }
+
+      .sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: center;
+        max-width: 100%;
+      }
+
+      #score, #level, #lines, #next-piece, .controls {
+        min-width: 120px;
+        font-size: 14px;
+        padding: 10px 15px;
+      }
+
+      #next-piece {
+        order: -1;
+        width: 100%;
+        max-width: 300px;
+      }
+
+      #next-canvas {
+        width: 100px;
+        height: 100px;
+      }
+
+      .controls {
+        display: none;
+      }
+
+      .mobile-controls {
+        display: block;
+      }
+
+      canvas {
+        max-width: 90vw;
+        height: auto;
+      }
+
+      .game-over-content {
+        margin: 20px;
+        padding: 30px 20px;
+      }
+
+      .game-over-title {
+        font-size: 36px;
+      }
+
+      body::before {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .sidebar {
+        gap: 8px;
+      }
+
+      #score, #level, #lines, #next-piece {
+        min-width: 100px;
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+
+      .mobile-btn {
+        font-size: 16px;
+      }
+
+      .move-btn {
+        width: 50px;
+        height: 50px;
+      }
+
+      .action-btn {
+        width: 70px;
+        height: 45px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+  <div class="sidebar">
+    <div id="score">Score: 0</div>
+    <div id="level">Level: 1</div>
+    <div id="lines">Lines: 0</div>
+    <div id="next-piece">
+      Next Piece
+      <canvas width="128" height="128" id="next-canvas"></canvas>
+    </div>
+    <div class="controls">
+      ← → Move<br>
+      ↑ Rotate<br>
+      ↓ Drop<br>
+      R Restart
+    </div>
+  </div>
+  
+  <div class="game-board">
+    <canvas width="320" height="640" id="game"></canvas>
+  </div>
+</div>
+
+<div class="mobile-controls">
+  <div class="control-row">
+    <button class="mobile-btn move-btn" id="leftBtn">←</button>
+    <button class="mobile-btn action-btn" id="rotateBtn">↻</button>
+    <button class="mobile-btn move-btn" id="rightBtn">→</button>
+  </div>
+  <div class="control-row">
+    <button class="mobile-btn action-btn" id="dropBtn">↓</button>
+    <button class="mobile-btn restart-mobile-btn" id="restartBtn">Restart</button>
+  </div>
+</div>
+
+<div class="game-over-overlay" id="gameOverOverlay">
+  <div class="game-over-content">
+    <div class="game-over-title">awokowkowkowk</div>
+    <div class="final-score" id="finalScore">Final Score: 0</div>
+    <button class="restart-btn" onclick="restartGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const context = canvas.getContext('2d');
+const nextCanvas = document.getElementById('next-canvas');
+const nextContext = nextCanvas.getContext('2d');
+const grid = 32;
+const tetrominoSequence = [];
+
+const playfield = [];
+const rows = 22; // 20 visible + 2 buffer rows
+const cols = 10;
+
+// Inisialisasi playfield
+for (let row = 0; row < rows; row++) {
+  playfield[row] = new Array(cols).fill(0);
+}
+
+const tetrominos = {
+  'I': [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+  'J': [[1,0,0],[1,1,1],[0,0,0]],
+  'L': [[0,0,1],[1,1,1],[0,0,0]],
+  'O': [[1,1],[1,1]],
+  'S': [[0,1,1],[1,1,0],[0,0,0]],
+  'Z': [[1,1,0],[0,1,1],[0,0,0]],
+  'T': [[0,1,0],[1,1,1],[0,0,0]]
+};
+
+const colors = {
+  'I': '#00ffff', 'O': '#ffff00', 'T': '#9900ff',
+  'S': '#00ff00', 'Z': '#ff0000', 'J': '#0066ff', 'L': '#ff6600'
+};
+
+let count = 0;
+let score = 0;
+let level = 1;
+let lines = 0;
+let dropTime = 1000;
+let lastTime = 0;
+let tetromino = null;
+let nextTetromino = null;
+let rAF = null;
+let gameOver = false;
+
+// Particle system
+const particles = [];
+
+function createParticle(x, y, color) {
+  for (let i = 0; i < 10; i++) {
+    particles.push({
+      x: x + Math.random() * grid,
+      y: y + Math.random() * grid,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      life: 30,
+      maxLife: 30,
+      color: color
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.3; // gravity
+    p.life--;
+    
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+    }
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    const alpha = p.life / p.maxLife;
+    context.save();
+    context.globalAlpha = alpha;
+    context.fillStyle = p.color;
+    context.fillRect(p.x, p.y, 3, 3);
+    context.restore();
+  });
+}
+
+// Generate random sequence
+function generateSequence() {
+  const sequence = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+  while (sequence.length) {
+    const rand = Math.floor(Math.random() * sequence.length);
+    const name = sequence.splice(rand, 1)[0];
+    tetrominoSequence.push(name);
+  }
+}
+
+// Ambil tetromino berikutnya
+function getNextTetromino() {
+  if (tetrominoSequence.length === 0) {
+    generateSequence();
+  }
+  const name = tetrominoSequence.pop();
+  const matrix = tetrominos[name];
+  const col = Math.floor(cols / 2 - Math.ceil(matrix[0].length / 2));
+  const row = 0; // mulai di atas playfield (buffer area)
+  return { name, matrix, row, col };
+}
+
+function drawNextPiece() {
+  nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+  
+  if (nextTetromino) {
+    const matrix = nextTetromino.matrix;
+    const blockSize = 20;
+    const offsetX = (nextCanvas.width - matrix[0].length * blockSize) / 2;
+    const offsetY = (nextCanvas.height - matrix.length * blockSize) / 2;
+    
+    nextContext.fillStyle = colors[nextTetromino.name];
+    for (let row = 0; row < matrix.length; row++) {
+      for (let col = 0; col < matrix[row].length; col++) {
+        if (matrix[row][col]) {
+          nextContext.fillRect(
+            offsetX + col * blockSize,
+            offsetY + row * blockSize,
+            blockSize - 1,
+            blockSize - 1
+          );
+          
+          // Add glow effect
+          nextContext.shadowBlur = 10;
+          nextContext.shadowColor = colors[nextTetromino.name];
+          nextContext.fillRect(
+            offsetX + col * blockSize,
+            offsetY + row * blockSize,
+            blockSize - 1,
+            blockSize - 1
+          );
+          nextContext.shadowBlur = 0;
+        }
+      }
+    }
+  }
+}
+
+function rotate(matrix) {
+  return matrix[0].map((_, i) => matrix.map(row => row[i])).reverse();
+}
+
+function isValidMove(matrix, cellRow, cellCol) {
+  for (let row = 0; row < matrix.length; row++) {
+    for (let col = 0; col < matrix[row].length; col++) {
+      if (
+        matrix[row][col] &&
+        (
+          cellCol + col < 0 ||
+          cellCol + col >= cols ||
+          cellRow + row >= rows ||
+          playfield[cellRow + row][cellCol + col]
+        )
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function placeTetromino() {
+  for (let row = 0; row < tetromino.matrix.length; row++) {
+    for (let col = 0; col < tetromino.matrix[row].length; col++) {
+      if (tetromino.matrix[row][col]) {
+        if (tetromino.row + row < 2) {
+          return showGameOver();
+        }
+        playfield[tetromino.row + row][tetromino.col + col] = tetromino.name;
+      }
+    }
+  }
+
+  // Cek dan hapus baris penuh
+  let linesCleared = 0;
+  for (let row = rows - 1; row >= 0;) {
+    if (playfield[row].every(cell => !!cell)) {
+      // Create particle effects for cleared line
+      for (let col = 0; col < cols; col++) {
+        createParticle(col * grid, (row - 2) * grid, colors[playfield[row][col]]);
+      }
+      
+      for (let r = row; r > 0; r--) {
+        playfield[r] = [...playfield[r - 1]];
+      }
+      playfield[0] = new Array(cols).fill(0);
+      linesCleared++;
+    } else {
+      row--;
+    }
+  }
+  
+  if (linesCleared > 0) {
+    lines += linesCleared;
+    score += linesCleared * 100 * level;
+    level = Math.floor(lines / 10) + 1;
+    dropTime = Math.max(100, 1000 - (level - 1) * 100);
+    
+    document.getElementById('score').textContent = 'Score: ' + score;
+    document.getElementById('level').textContent = 'Level: ' + level;
+    document.getElementById('lines').textContent = 'Lines: ' + lines;
+  }
+
+  tetromino = nextTetromino;
+  nextTetromino = getNextTetromino();
+  drawNextPiece();
+}
+
+function showGameOver() {
+  cancelAnimationFrame(rAF);
+  gameOver = true;
+  
+  document.getElementById('finalScore').textContent = 'Final Score: ' + score;
+  document.getElementById('gameOverOverlay').style.display = 'flex';
+}
+
+function restartGame() {
+  // Reset game state
+  gameOver = false;
+  score = 0;
+  level = 1;
+  lines = 0;
+  dropTime = 1000;
+  count = 0;
+  particles.length = 0;
+  
+  // Reset playfield
+  for (let row = 0; row < rows; row++) {
+    playfield[row] = new Array(cols).fill(0);
+  }
+  
+  // Reset UI
+  document.getElementById('score').textContent = 'Score: 0';
+  document.getElementById('level').textContent = 'Level: 1';
+  document.getElementById('lines').textContent = 'Lines: 0';
+  document.getElementById('gameOverOverlay').style.display = 'none';
+  
+  // Start new game
+  tetrominoSequence.length = 0;
+  generateSequence();
+  tetromino = getNextTetromino();
+  nextTetromino = getNextTetromino();
+  drawNextPiece();
+  
+  rAF = requestAnimationFrame(loop);
+}
+
+// Enhanced drawing with glow effects
+function drawBlock(x, y, color) {
+  // Main block
+  context.fillStyle = color;
+  context.fillRect(x, y, grid - 1, grid - 1);
+  
+  // Glow effect
+  context.shadowBlur = 10;
+  context.shadowColor = color;
+  context.fillRect(x, y, grid - 1, grid - 1);
+  context.shadowBlur = 0;
+  
+  // Highlight
+  context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+  context.fillRect(x + 2, y + 2, grid - 6, 4);
+  context.fillRect(x + 2, y + 2, 4, grid - 6);
+}
+
+// Game loop
+function loop(time = 0) {
+  rAF = requestAnimationFrame(loop);
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw playfield
+  for (let row = 2; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (playfield[row][col]) {
+        drawBlock(col * grid, (row - 2) * grid, colors[playfield[row][col]]);
+      }
+    }
+  }
+
+  // Update and draw particles
+  updateParticles();
+  drawParticles();
+
+  // Move tetromino down
+  if (tetromino) {
+    if (time - lastTime > dropTime) {
+      tetromino.row++;
+      if (!isValidMove(tetromino.matrix, tetromino.row, tetromino.col)) {
+        tetromino.row--;
+        placeTetromino();
+      }
+      lastTime = time;
+    }
+
+    // Draw current tetromino
+    for (let row = 0; row < tetromino.matrix.length; row++) {
+      for (let col = 0; col < tetromino.matrix[row].length; col++) {
+        if (tetromino.matrix[row][col]) {
+          drawBlock(
+            (tetromino.col + col) * grid,
+            (tetromino.row + row - 2) * grid,
+            colors[tetromino.name]
+          );
+        }
+      }
+    }
+  }
+}
+
+// Keyboard controls
+document.addEventListener('keydown', e => {
+  if (gameOver && e.key === 'r') {
+    restartGame();
+    return;
+  }
+  
+  if (gameOver) return;
+
+  handleInput(e.key);
+});
+
+// Handle input (both keyboard and touch)
+function handleInput(input) {
+  if (gameOver) return;
+
+  switch(input) {
+    case 'ArrowLeft':
+    case 'left':
+      const leftCol = tetromino.col - 1;
+      if (isValidMove(tetromino.matrix, tetromino.row, leftCol)) {
+        tetromino.col = leftCol;
+      }
+      break;
+      
+    case 'ArrowRight':
+    case 'right':
+      const rightCol = tetromino.col + 1;
+      if (isValidMove(tetromino.matrix, tetromino.row, rightCol)) {
+        tetromino.col = rightCol;
+      }
+      break;
+      
+    case 'ArrowUp':
+    case 'rotate':
+      const rotated = rotate(tetromino.matrix);
+      if (isValidMove(rotated, tetromino.row, tetromino.col)) {
+        tetromino.matrix = rotated;
+      }
+      break;
+      
+    case 'ArrowDown':
+    case 'drop':
+      const newRow = tetromino.row + 1;
+      if (!isValidMove(tetromino.matrix, newRow, tetromino.col)) {
+        tetromino.row = newRow - 1;
+        placeTetromino();
+      } else {
+        tetromino.row = newRow;
+      }
+      break;
+      
+    case 'r':
+    case 'R':
+    case 'restart':
+      if (confirm('Restart game?')) {
+        restartGame();
+      }
+      break;
+  }
+}
+
+// Touch controls for mobile
+document.getElementById('leftBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleInput('left');
+});
+
+document.getElementById('rightBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleInput('right');
+});
+
+document.getElementById('rotateBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleInput('rotate');
+});
+
+document.getElementById('dropBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleInput('drop');
+});
+
+document.getElementById('restartBtn').addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  handleInput('restart');
+});
+
+// Also add click events for desktop testing
+document.getElementById('leftBtn').addEventListener('click', () => handleInput('left'));
+document.getElementById('rightBtn').addEventListener('click', () => handleInput('right'));
+document.getElementById('rotateBtn').addEventListener('click', () => handleInput('rotate'));
+document.getElementById('dropBtn').addEventListener('click', () => handleInput('drop'));
+document.getElementById('restartBtn').addEventListener('click', () => handleInput('restart'));
+
+// Prevent zoom on double tap for mobile
+document.addEventListener('touchstart', function(e) {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function(e) {
+  const now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// Create floating particles in background
+function createBackgroundParticles() {
+  const particle = document.createElement('div');
+  particle.className = 'particle';
+  particle.style.left = Math.random() * 100 + '%';
+  particle.style.animationDelay = Math.random() * 3 + 's';
+  particle.style.animationDuration = (Math.random() * 3 + 2) + 's';
+  document.body.appendChild(particle);
+  
+  setTimeout(() => {
+    particle.remove();
+  }, 5000);
+}
+
+setInterval(createBackgroundParticles, 1000);
+
+// Start game
+generateSequence();
+tetromino = getNextTetromino();
+nextTetromino = getNextTetromino();
+drawNextPiece();
+rAF = requestAnimationFrame(loop);
+</script>
+
+</body>
+</html>
